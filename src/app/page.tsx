@@ -22,7 +22,7 @@ import TaskCard from "@/components/TaskCard";
 import TaskModal, { TaskItem } from "@/components/TaskModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import RecycleBinModal from "@/components/RecycleBinModal";
-import { getGreeting, formatTodayDate } from "@/lib/utils";
+import { getGreeting, formatTodayDate, getAuthHeaders } from "@/lib/utils";
 
 export default function HomePage() {
   const router = useRouter();
@@ -97,14 +97,23 @@ export default function HomePage() {
   // Fetch current user session
   const fetchUser = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", {
+        headers: getAuthHeaders(),
+      });
       if (res.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("todo_token");
+          localStorage.removeItem("todo_user");
+        }
         window.location.href = "/login";
         return;
       }
       const data = await res.json();
       if (data.user) {
         setUser(data.user);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("todo_user", JSON.stringify(data.user));
+        }
       } else {
         window.location.href = "/login";
       }
@@ -126,7 +135,9 @@ export default function HomePage() {
       if (tagFilter !== "ALL") params.append("tag", tagFilter);
       if (sortBy) params.append("sort", sortBy);
 
-      const res = await fetch(`/api/tasks?${params.toString()}`);
+      const res = await fetch(`/api/tasks?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
       if (res.status === 401) {
         window.location.href = "/login";
         return;
@@ -178,7 +189,7 @@ export default function HomePage() {
 
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify(data),
     });
 
@@ -206,7 +217,7 @@ export default function HomePage() {
 
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -229,6 +240,7 @@ export default function HomePage() {
       setDeleteLoading(true);
       const res = await fetch(`/api/tasks/${taskToDelete.id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) {

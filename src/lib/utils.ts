@@ -6,6 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Returns Authorization header with stored token if present
+ */
+export function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const token = localStorage.getItem("todo_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return headers;
+}
+
+/**
  * Returns formatted date like "Oct 16, 2026, 2:45 PM"
  */
 export function formatDate(dateString: string | Date): string {

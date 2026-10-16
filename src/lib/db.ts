@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import crypto from "crypto";
+import seedData from "../../data/todo.json";
 
 export interface User {
   id: string;
@@ -32,71 +34,121 @@ interface DatabaseSchema {
   tasks: Task[];
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "todo.json");
-
 // In-memory cache
 let inMemoryDb: DatabaseSchema | null = null;
 let writeQueue = Promise.resolve();
 
-function ensureDataDir(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// Determine best writable location across local & cloud environments (e.g. Vercel)
+function getWritableDbFile(): string {
+  // 1. Try local data directory first
+  try {
+    const localDir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    const testFile = path.join(localDir, `.test_${Date.now()}`);
+    fs.writeFileSync(testFile, "1");
+    fs.unlinkSync(testFile);
+    return path.join(localDir, "todo.json");
+  } catch {
+    // 2. Read-only environment (e.g. Vercel Serverless / Lambda) -> use os.tmpdir()
+    try {
+      const tmpDir = path.join(os.tmpdir(), "todo-data");
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      return path.join(tmpDir, "todo.json");
+    } catch {
+      return path.join(os.tmpdir(), "todo.json");
+    }
   }
 }
 
 function loadDatabase(): DatabaseSchema {
   if (inMemoryDb) return inMemoryDb;
 
-  ensureDataDir();
+  const dbFile = getWritableDbFile();
 
-  if (fs.existsSync(DB_FILE)) {
+  // Try reading from writable location first
+  if (fs.existsSync(dbFile)) {
     try {
-      const raw = fs.readFileSync(DB_FILE, "utf-8");
+      const raw = fs.readFileSync(dbFile, "utf-8");
       inMemoryDb = JSON.parse(raw);
       if (!inMemoryDb?.users) inMemoryDb = { users: [], tasks: [] };
       if (!inMemoryDb?.tasks) inMemoryDb.tasks = [];
-
-      // Ensure backwards compatibility with tasks that don't have tags or isDeleted
-      inMemoryDb.tasks = inMemoryDb.tasks.map((t) => ({
-        ...t,
-        tags: Array.isArray(t.tags) ? t.tags : [],
-        isDeleted: Boolean(t.isDeleted),
-        deletedAt: t.deletedAt || null,
-      }));
-
-      return inMemoryDb;
     } catch (e) {
-      console.error("Failed to read database file, creating fresh store:", e);
+      console.warn("Could not parse db file, will use seed:", e);
     }
   }
 
-  inMemoryDb = {
-    users: [],
-    tasks: [],
-  };
+  // If not found, try reading from bundled project data directory
+  if (!inMemoryDb) {
+    try {
+      const projectFile = path.join(process.cwd(), "data", "todo.json");
+      if (fs.existsSync(projectFile)) {
+        const raw = fs.readFileSync(projectFile, "utf-8");
+        inMemoryDb = JSON.parse(raw);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
-  saveDatabaseSync(inMemoryDb);
+  // Fallback to compiled seedData (guarantees accounts are always available even on serverless)
+  if (!inMemoryDb) {
+    inMemoryDb = {
+      users: (seedData as any)?.users || [],
+      tasks: (seedData as any)?.tasks || [],
+    };
+  }
+
+  // Ensure backwards compatibility with tasks
+  inMemoryDb.tasks = (inMemoryDb.tasks || []).map((t) => ({
+    ...t,
+    tags: Array.isArray(t.tags) ? t.tags : [],
+    isDeleted: Boolean(t.isDeleted),
+    deletedAt: t.deletedAt || null,
+  }));
+
+  // Initial persist attempt
+  try {
+    saveDatabaseSync(inMemoryDb);
+  } catch {
+    // In-memory works perfectly even if file save fails
+  }
+
   return inMemoryDb;
 }
 
 function saveDatabaseSync(data: DatabaseSchema): void {
-  ensureDataDir();
-  const tempFile = `${DB_FILE}.${Date.now()}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
-  fs.renameSync(tempFile, DB_FILE);
+  try {
+    const dbFile = getWritableDbFile();
+    const dir = path.dirname(dbFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const tempFile = `${dbFile}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
+    fs.renameSync(tempFile, dbFile);
+  } catch (err) {
+    console.warn("Database sync write warning (in-memory updated):", err);
+  }
 }
 
 function scheduleSave(): Promise<void> {
   const currentSnapshot = JSON.parse(JSON.stringify(loadDatabase()));
   writeQueue = writeQueue.then(async () => {
     try {
-      ensureDataDir();
-      const tempFile = `${DB_FILE}.${Date.now()}.${Math.random().toString(36).substring(7)}.tmp`;
+      const dbFile = getWritableDbFile();
+      const dir = path.dirname(dbFile);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const tempFile = `${dbFile}.${Date.now()}.${Math.random().toString(36).substring(7)}.tmp`;
       await fs.promises.writeFile(tempFile, JSON.stringify(currentSnapshot, null, 2), "utf-8");
-      await fs.promises.rename(tempFile, DB_FILE);
+      await fs.promises.rename(tempFile, dbFile);
     } catch (err) {
-      console.error("Error saving database:", err);
+      console.warn("Database async write warning (in-memory updated):", err);
     }
   });
   return writeQueue;

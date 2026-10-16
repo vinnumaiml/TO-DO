@@ -12,7 +12,7 @@ import {
   Tag as TagIcon,
   CheckCircle,
 } from "lucide-react";
-import { formatFullDate, formatRelativeTime, PRIORITY_MAP, cn } from "@/lib/utils";
+import { formatFullDate, formatRelativeTime, PRIORITY_MAP, cn, getAuthHeaders } from "@/lib/utils";
 import { TaskItem } from "./TaskModal";
 
 interface RecycleBinModalProps {
@@ -38,7 +38,9 @@ export default function RecycleBinModal({
   const fetchDeletedTasks = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/tasks/recycle-bin");
+      const res = await fetch("/api/tasks/recycle-bin", {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const data = await res.json();
         setDeletedTasks(data.tasks || []);
@@ -64,6 +66,7 @@ export default function RecycleBinModal({
       setActionLoadingId(task.id);
       const res = await fetch(`/api/tasks/${task.id}/restore`, {
         method: "POST",
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) throw new Error("Failed to restore task");
@@ -84,6 +87,7 @@ export default function RecycleBinModal({
       setActionLoadingId(task.id);
       const res = await fetch(`/api/tasks/${task.id}?permanent=true`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) throw new Error("Failed to delete permanently");
@@ -105,6 +109,7 @@ export default function RecycleBinModal({
       setEmptyBinLoading(true);
       const res = await fetch("/api/tasks/recycle-bin", {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) throw new Error("Failed to empty recycle bin");

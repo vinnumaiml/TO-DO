@@ -26,10 +26,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verify JWT session for protected routes (e.g. /, /profile, /api/tasks)
-  const token = request.cookies.get(TOKEN_NAME)?.value;
-  let isAuthenticated = false;
+  // Verify JWT session for protected routes (e.g. /profile, /api/tasks)
+  // Check cookie or Authorization header
+  let token = request.cookies.get(TOKEN_NAME)?.value;
+  if (!token) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    }
+  }
 
+  let isAuthenticated = false;
   if (token) {
     try {
       await jwtVerify(token, SECRET_KEY);
@@ -39,20 +46,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If not authenticated and trying to access protected pages -> redirect to /login
-  if (!isAuthenticated && !pathname.startsWith("/api")) {
+  // Protect /profile explicitly if not authenticated
+  if (!isAuthenticated && pathname.startsWith("/profile")) {
     const loginUrl = new URL("/login", request.url);
-    const response = NextResponse.redirect(loginUrl);
-    // Clean up any broken/invalid token cookie
-    if (token) {
-      response.cookies.set({
-        name: TOKEN_NAME,
-        value: "",
-        expires: new Date(0),
-        path: "/",
-      });
-    }
-    return response;
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

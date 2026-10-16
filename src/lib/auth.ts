@@ -34,7 +34,16 @@ export async function getSessionUser(req?: NextRequest): Promise<TokenPayload | 
   let token: string | undefined;
 
   if (req) {
+    // 1. Check HTTP-only cookie
     token = req.cookies.get(TOKEN_NAME)?.value;
+
+    // 2. Check Authorization Header fallback (Bearer token)
+    if (!token) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7).trim();
+      }
+    }
   } else {
     try {
       const cookieStore = cookies();

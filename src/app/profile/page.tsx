@@ -25,7 +25,7 @@ import {
   Moon,
   Laptop,
 } from "lucide-react";
-import { formatFullDate } from "@/lib/utils";
+import { formatFullDate, getAuthHeaders } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -71,11 +71,15 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       const [meRes, tasksRes] = await Promise.all([
-        fetch("/api/auth/me"),
-        fetch("/api/tasks"),
+        fetch("/api/auth/me", { headers: getAuthHeaders() }),
+        fetch("/api/tasks", { headers: getAuthHeaders() }),
       ]);
 
       if (meRes.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("todo_token");
+          localStorage.removeItem("todo_user");
+        }
         router.push("/login");
         return;
       }
@@ -107,7 +111,11 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     try {
       setLoggingOut(true);
-      await fetch("/api/auth/logout", { method: "POST" });
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("todo_token");
+        localStorage.removeItem("todo_user");
+      }
+      await fetch("/api/auth/logout", { method: "POST", headers: getAuthHeaders() });
       router.push("/login");
       router.refresh();
     } catch (err) {
@@ -136,7 +144,7 @@ export default function ProfilePage() {
 
       const res = await fetch("/api/auth/me", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ name: name.trim() }),
       });
 
@@ -174,7 +182,7 @@ export default function ProfilePage() {
 
       const res = await fetch("/api/auth/me", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 

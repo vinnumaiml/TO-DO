@@ -34,12 +34,21 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || "Invalid email or password");
       }
 
+      // Save token and user in localStorage as reliable fallback alongside cookie
+      if (data.token) {
+        localStorage.setItem("todo_token", data.token);
+      }
+      if (data.user) {
+        localStorage.setItem("todo_user", JSON.stringify(data.user));
+      }
+
+      // Smoothly navigate to workspace
       window.location.href = "/";
     } catch (err: any) {
-      setError(err?.message || "Invalid email or password.");
+      setError(err?.message || "Invalid email or password. If you don't have an account yet, please sign up.");
     } finally {
       setLoading(false);
     }
@@ -67,8 +76,17 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-sm">
-              {error}
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-sm space-y-1">
+              <div className="font-semibold">{error}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">
+                Don&apos;t have an account yet?{" "}
+                <Link
+                  href="/register"
+                  className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Click here to create account
+                </Link>
+              </div>
             </div>
           )}
 

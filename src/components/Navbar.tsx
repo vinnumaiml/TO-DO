@@ -29,6 +29,10 @@ export default function Navbar({
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("todo_token");
+        localStorage.removeItem("todo_user");
+      }
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/login");
       router.refresh();

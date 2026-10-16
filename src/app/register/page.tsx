@@ -59,6 +59,14 @@ export default function RegisterPage() {
         throw new Error(data.error || "Failed to create account");
       }
 
+      // Save token and user in localStorage as reliable fallback alongside cookie
+      if (data.token) {
+        localStorage.setItem("todo_token", data.token);
+      }
+      if (data.user) {
+        localStorage.setItem("todo_user", JSON.stringify(data.user));
+      }
+
       window.location.href = "/";
     } catch (err: any) {
       setError(err?.message || "An error occurred during registration.");
