@@ -1,0 +1,74 @@
+{
+  "users": [
+    {
+      "id": "0b4e70e3-e927-4a4e-ae13-355d6e2eea92",
+      "name": "Vinnu",
+      "email": "mvr.vinayaka19@gmail.com",
+      "password": "$2a$10$rS.AY1aAsfCoUIDqkeYDxOpDB8tfzvqSY3Vd7AxBmj8W8mSRCeyz2",
+      "createdAt": "2026-10-16T09:53:09.789Z",
+      "updatedAt": "2026-10-16T09:53:09.789Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "f8e32058-3fa6-41dd-a816-775a7f550b79",
+      "title": "Design a car",
+      "description": "BMW",
+      "status": "PENDING",
+      "priority": "HIGH",
+      "tags": [
+        "Work"
+      ],
+      "isDeleted": false,
+      "deletedAt": null,
+      "userId": "0b4e70e3-e927-4a4e-ae13-355d6e2eea92",
+      "createdAt": "2026-10-16T10:14:46.372Z",
+      "updatedAt": "2026-10-16T10:14:46.372Z"
+    },
+    {
+      "id": "903c0977-2e4a-4477-a340-9f5cae42656f",
+      "title": "build a fullstack website",
+      "description": "In basic way",
+      "status": "COMPLETED",
+      "priority": "MEDIUM",
+      "tags": [
+        "Work"
+      ],
+      "isDeleted": false,
+      "deletedAt": null,
+      "userId": "0b4e70e3-e927-4a4e-ae13-355d6e2eea92",
+      "createdAt": "2026-10-16T10:06:49.634Z",
+      "updatedAt": "2026-10-16T10:06:49.634Z"
+    },
+    {
+      "id": "b62691a5-a1c5-45b7-b7e4-4c56dae3d5ee",
+      "title": "Design a Website",
+      "description": "For Our Business",
+      "status": "PENDING",
+      "priority": "HIGH",
+      "tags": [
+        "Coding"
+      ],
+      "isDeleted": false,
+      "deletedAt": null,
+      "userId": "0b4e70e3-e927-4a4e-ae13-355d6e2eea92",
+      "createdAt": "2026-10-16T09:55:13.040Z",
+      "updatedAt": "2026-10-16T10:07:42.929Z"
+    },
+    {
+      "id": "7316816f-4aa5-4dbc-9083-dbaf02a99ee0",
+      "title": "Complete UHV Assignments",
+      "description": "Assigment Number 2",
+      "status": "COMPLETED",
+      "priority": "LOW",
+      "tags": [
+        "Study"
+      ],
+      "isDeleted": false,
+      "deletedAt": null,
+      "userId": "0b4e70e3-e927-4a4e-ae13-355d6e2eea92",
+      "createdAt": "2026-10-16T09:54:21.340Z",
+      "updatedAt": "2026-10-16T10:14:52.212Z"
+    }
+  ]
+}
